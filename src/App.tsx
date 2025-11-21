@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Download, BookOpen, Brain, Zap } from 'lucide-react';
+import { Download, BookOpen, Brain, Zap, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 function App() {
@@ -8,6 +8,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // NEW: popup modal
+  const [selectedCard, setSelectedCard] = useState<any>(null);
 
   // Custom cursor
   const cursorDot = useRef<HTMLDivElement>(null);
@@ -95,10 +98,10 @@ function App() {
         </div>
       )}
 
-      {/* MAIN CONTAINER */}
+      {/* MAIN UI */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-800">
-        
-        {/* Simple White Header */}
+
+        {/* HEADER */}
         <motion.header
           initial={{ y: -100 }}
           animate={{ y: 0 }}
@@ -108,14 +111,14 @@ function App() {
             <div className="flex items-center gap-4">
               <Brain className="w-10 h-10 text-indigo-600" />
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                LearnFlow
+                learnflow
               </h1>
             </div>
             <p className="text-gray-500 font-medium">AI-Powered Study Planner</p>
           </div>
         </motion.header>
 
-        {/* Hero Section */}
+        {/* HERO */}
         <section className="pt-32 pb-20 px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -152,7 +155,7 @@ function App() {
           </motion.p>
         </section>
 
-        {/* Input Card */}
+        {/* INPUT CARD */}
         <div className="container mx-auto px-6 max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: 60 }}
@@ -196,9 +199,11 @@ function App() {
           </motion.div>
         </div>
 
-        {/* Results */}
+        {/* RESULTS */}
         {result && (
           <div className="container mx-auto px-6 max-w-5xl mt-24 space-y-20">
+            
+            {/* STUDY PLAN */}
             <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-14">
               <div className="flex items-center gap-5 mb-10">
                 <BookOpen className="w-12 h-12 text-indigo-600" />
@@ -211,33 +216,80 @@ function App() {
               </div>
             </motion.section>
 
+
+            {/* FLASHCARDS WITH SPIN + POPUP */}
             {result.flashcards?.length > 0 && (
-              <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-14">
-                <div className="flex justify-between items-center mb-12">
-                  <div className="flex items-center gap-5">
-                    <Brain className="w-12 h-12 text-blue-600" />
-                    <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                      Flashcards ({result.flashcards.length})
-                    </h2>
-                  </div>
-                  <button onClick={downloadAnki} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-4">
-                    <Download className="w-6 h-6" />
-                    Download Anki Deck
-                  </button>
-                </div>
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                  {result.flashcards.map((card: any, i: number) => (
-                    <motion.div key={i} whileHover={{ y: -12, scale: 1.04 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-10 hover:shadow-2xl transition-all duration-300">
-                      <p className="font-bold text-blue-900 text-lg mb-4">Question</p>
-                      <p className="text-gray-800 mb-6">{card.question}</p>
-                      <p className="font-bold text-indigo-900 text-lg">Answer</p>
-                      <p className="text-gray-700 mt-3">{card.answer}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
+              <motion.section
+  initial={{ opacity: 0, y: 40 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  className="bg-white rounded-3xl shadow-xl border border-gray-100 p-14"
+>
+  <div className="flex justify-between items-center mb-12">
+    <div className="flex items-center gap-5">
+      <Brain className="w-12 h-12 text-blue-600" />
+      <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        Flashcards ({result.flashcards.length})
+      </h2>
+    </div>
+    <button
+      onClick={downloadAnki}
+      className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-4"
+    >
+      <Download className="w-6 h-6" />
+      Download Anki Deck
+    </button>
+  </div>
+
+  <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+    {result.flashcards.map((card: any, i: number) => (
+      <motion.div
+        key={i}
+        onClick={() => setSelectedCard(card)}
+        whileTap={{ rotateY: 180 }}
+        transition={{ duration: 0.6 }}
+        className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-10 cursor-pointer hover:shadow-2xl transition-all duration-300 [transform-style:preserve-3d]"
+      >
+        <p className="font-bold text-blue-900 text-lg mb-4">Question</p>
+        <p className="text-gray-800 mb-6">{card.question}</p>
+        <p className="font-bold text-indigo-900 text-lg">Answer</p>
+        <p className="text-gray-700 mt-3">{card.answer}</p>
+      </motion.div>
+    ))}
+  </div>
+</motion.section>
             )}
 
+            {/* POPUP MODAL */}
+            {selectedCard && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+                onClick={() => setSelectedCard(null)}
+              >
+                <motion.div
+                  initial={{ scale: 0.7, rotateX: 90 }}
+                  animate={{ scale: 1, rotateX: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="bg-white p-10 rounded-3xl max-w-xl w-full shadow-2xl relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button onClick={() => setSelectedCard(null)} className="absolute top-4 right-4">
+                    <X className="w-6 h-6 text-gray-600" />
+                  </button>
+
+                  <h3 className="text-3xl font-bold text-indigo-700 mb-6">Flashcard</h3>
+                  <p className="font-bold text-blue-900 text-xl mb-3">Question:</p>
+                  <p className="text-gray-800 text-lg mb-6">{selectedCard.question}</p>
+
+                  <p className="font-bold text-indigo-900 text-xl mb-3">Answer:</p>
+                  <p className="text-gray-700 text-lg">{selectedCard.answer}</p>
+                </motion.div>
+              </motion.div>
+            )}
+
+
+            {/* PRACTICE QUESTIONS */}
             {result.practice && (
               <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-14">
                 <div className="flex items-center gap-5 mb-10">
@@ -252,6 +304,7 @@ function App() {
               </motion.section>
             )}
 
+            {/* MOTIVATION */}
             {result.motivation && (
               <motion.section initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} className="bg-gradient-to-r from-indigo-50 to-cyan-100 rounded-3xl p-20 text-center border border-indigo-200 shadow-inner">
                 <p className="text-4xl font-bold text-indigo-900 mb-6">Keep Pushing</p>
@@ -261,7 +314,7 @@ function App() {
           </div>
         )}
 
-        {/* Footer */}
+        {/* FOOTER */}
         <footer className="mt-32 py-12 bg-gradient-to-t from-gray-900 to-gray-800 text-gray-300">
           <div className="container mx-auto px-6 text-center">
             <p className="text-sm">
@@ -274,6 +327,7 @@ function App() {
         </footer>
       </div>
 
+      {/* Slider thumb */}
       <style>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
