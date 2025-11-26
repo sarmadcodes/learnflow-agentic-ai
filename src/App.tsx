@@ -65,7 +65,7 @@ function App() {
     return () => document.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Auto-scroll to study plan when result arrives
+ 
   useEffect(() => {
     if (result && studyPlanRef.current) {
       studyPlanRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -120,30 +120,50 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-gray-800">
 
         {/* Navbar */}
-        <motion.header
-          initial={{ y: 0 }}
-          animate={{ y: navbarVisible ? 0 : -100 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
-          className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/80 border-b border-gray-100"
-        >
-          <div className="container mx-auto px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Brain className="w-9 h-9 text-indigo-600" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                LearnFlow
-              </h1>
-            </div>
-            <p className="hidden md:block text-gray-600 font-medium">AI-Powered Study Planner</p>
-            <button onClick={() => setMobileMenuOpen(v => !v)} className="md:hidden">
-              <Menu className="w-7 h-7 text-gray-700" />
-            </button>
-          </div>
-          {mobileMenuOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-200 py-4 text-center">
-              <p className="text-lg font-semibold text-gray-700">AI-Powered Study Planner</p>
-            </motion.div>
-          )}
-        </motion.header>
+       <motion.header
+  initial={{ opacity: 0, y: -50 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.6, ease: "easeOut" }}
+  className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl bg-white/80 border-b border-gray-300"
+>
+  <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+    
+
+    <div className="flex items-center gap-3">
+      <Brain className="w-9 h-9 text-indigo-600" />
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
+        LearnFlow
+      </h1>
+    </div>
+
+ 
+    <div className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 backdrop-blur-md border border-gray-200 px-5 py-2.5 rounded-full shadow-lg text-sm md:text-base">
+      <p className="font-medium text-white">AI-Powered Study Planner</p>
+    </div>
+
+
+    <button
+      onClick={() => setMobileMenuOpen((v) => !v)}
+      className="md:hidden"
+    >
+      <Menu className="w-7 h-7 text-gray-700" />
+    </button>
+  </div>
+
+
+  {mobileMenuOpen && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-200 py-4 text-center"
+    >
+      <p className="text-lg font-semibold text-gray-700">
+        AI-Powered Study Planner
+      </p>
+    </motion.div>
+  )}
+</motion.header>
+
 
         {/* Hero Section */}
         <section className="pt-32 pb-16 px-6 text-center">
@@ -344,16 +364,23 @@ function App() {
           </div>
         )}
 
-        <footer className="mt-24 md:mt-32 py-12 bg-gradient-to-t from-gray-900 to-gray-800 text-gray-300">
-          <div className="container mx-auto px-6 text-center">
-            <p className="text-sm">
-              © 2025 <span className="font-bold">LearnFlow</span>. Developed by Sarmad, Abdullah, Asad, Mubashir, Zain, Ohm
+        
+
+        <motion.footer
+            initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      viewport={{ once: true }}
+         className="mt-24 md:mt-32 py-12  bg-slate-200 ">
+          <div className="container mx-auto px-6 text-center bg-slate-200">
+            <p className="text-sm  bg-clip-text bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 text-transparent">
+              © 2025 <span className="font-bold bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500  bg-clip-text text-transparent">LearnFlow</span>. Developed by Sarmad, Abdullah, Asad, Mubashir, Zain, Ohm
             </p>
           </div>
-        </footer>
+        </motion.footer>
       </div>
 
-      <style jsx>{`
+      <style >{`
         .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
         .line-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
         .slider::-webkit-slider-thumb {
