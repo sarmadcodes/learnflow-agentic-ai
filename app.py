@@ -1,19 +1,13 @@
+# app.py - Gemini 2.0 Flash: Because 1.5 was so 2024
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import httpx
-import genanki
-import random
 import os
-from pathlib import Path
-
-# FORCE LOAD .env + DEBUG PRINT
 from dotenv import load_dotenv
-load_dotenv()
 
-# DEBUG: This line will tell us the truth
-print("OPENAI_API_KEY LOADED →", os.getenv("OPENAI_API_KEY", "MISSING OR EMPTY!!!"))
+load_dotenv()
 
 app = FastAPI()
 
@@ -29,106 +23,110 @@ class StudyRequest(BaseModel):
     topic: str
     days: int
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY not found! Check your .env file!")
+# === GEMINI 2.0 FLASH (stable as of Dec 2025) ===
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY missing from .env — fix that or cry quietly.")
 
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+# Updated model name + endpoint (v1beta is back in fashion, apparently)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-async def call_openai(prompt: str) -> str:
+async def call_gemini(prompt: str) -> str:
     async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            OPENAI_URL,
-            headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json"
-            },
+        resp = await client.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
             json={
-                "model": "gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 3000
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.9,
+                    "maxOutputTokens": 4096,
+                },
+                "safetySettings": [  # Chill mode: let the savage quotes flow
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                ]
             }
         )
-        if response.status_code != 200:
-            print("OpenAI Error:", response.text)  # Extra debug
-            raise HTTPException(status_code=500, detail=f"OpenAI failed: {response.status_code}")
-        return response.json()["choices"][0]["message"]["content"]
+        if resp.status_code != 200:
+            print(f"Gemini threw hands: {resp.status_code} - {resp.text}")
+            raise HTTPException(status_code=500, detail="Gemini had a bad day. Try again?")
+        
+        try:
+            # Parse the new(ish) response structure
+            data = resp.json()
+            if "candidates" not in data or not data["candidates"]:
+                raise ValueError("No candidates in response — Gemini's slacking")
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            return text.strip()  # Clean that whitespace, it's 2025
+        except (KeyError, IndexError, ValueError) as e:
+            print(f"Parse fail (blame Google): {e} | Raw: {resp.text[:500]}...")
+            raise HTTPException(status_code=500, detail="Gemini spoke in tongues. Raw output below for debug:")
 
 @app.post("/api/generate")
 async def generate_study_plan(request: StudyRequest):
-    prompt = f"""Create a study plan for: {request.topic} over {request.days} days.
+    prompt = f"""Yo Gemini, craft a killer study plan for "{request.topic}" across {request.days} days.
 
-Return EXACTLY in this format:
+Stick to THIS EXACT format like your digital life depends on it (no fluff, no markdown, just the goods):
 
 STUDY_PLAN:
-[Create a {request.days}-day breakdown with Pomodoro sessions and spaced repetition principles]
+[A {request.days}-day roadmap packed with Pomodoro timers (25/5 vibes), spaced repetition hooks, daily goals, and pro tips. Make it actionable AF.]
 
 FLASHCARDS:
-[Create exactly 15 flashcards in format "Q: question | A: answer" one per line]
+[Drop exactly 15 flashcards, one per line: Q: [question] | A: [answer]. Keep 'em bite-sized but brain-tickling.]
 
 PRACTICE:
-[Create 5 practice questions with detailed answers]
+[5 spicy practice questions with full, detailed answers. Make 'em test real understanding.]
 
 MOTIVATION:
-[One savage/funny motivational quote related to {request.topic}]"""
+[One brutally honest, funny-as-hell quote about mastering {request.topic} or the grind of studying. Dark humor encouraged.]"""
 
-    result = await call_openai(prompt)
+    raw_response = await call_gemini(prompt)
 
-    sections = {"study_plan": "", "flashcards": [], "practice": "", "motivation": ""}
+    # Parse city — Gemini's usually good at this, but we got backups
+    result = {"study_plan": raw_response, "flashcards": [], "practice": "", "motivation": ""}  # Fallback to raw
 
-    parts = result.split("FLASHCARDS:")
-    sections["study_plan"] = parts[0].replace("STUDY_PLAN:", "").strip()
+    try:
+        # Split 'n dice
+        if "FLASHCARDS:" in raw_response:
+            parts = raw_response.split("FLASHCARDS:")
+            result["study_plan"] = parts[0].replace("STUDY_PLAN:", "").strip()
 
-    if len(parts) > 1:
-        flash_practice = parts[1].split("PRACTICE:")
-        flashcard_text = flash_practice[0].strip()
+            if len(parts) > 1:
+                practice_split = parts[1].split("PRACTICE:")
+                flashcards_raw = practice_split[0].strip()
 
-        for line in flashcard_text.split("\n"):
-            line = line.strip()
-            if not line: continue
-            if " | A:" in line or "|A:" in line:
-                q_a = line.split("|", maxsplit=1)
-                if len(q_a) == 2:
-                    q = q_a[0].replace("Q:", "").strip()
-                    a = q_a[1].replace("A:", "").strip()
-                    sections["flashcards"].append({"question": q, "answer": a})
+                # Flashcard surgery
+                for line in flashcards_raw.split("\n"):
+                    line = line.strip()
+                    if not line or "| A:" not in line:
+                        continue
+                    q_part, a_part = line.split("| A:", 1)
+                    q = q_part.replace("Q:", "").strip()
+                    a = a_part.strip()
+                    if q and a:  # Sanity check
+                        result["flashcards"].append({"question": q, "answer": a})
 
-        if len(flash_practice) > 1:
-            prac_mot = flash_practice[1].split("MOTIVATION:")
-            sections["practice"] = prac_mot[0].strip()
-            if len(prac_mot) > 1:
-                sections["motivation"] = prac_mot[1].strip()
+                # Practice & Motivation
+                if len(practice_split) > 1:
+                    mot_split = practice_split[1].split("MOTIVATION:")
+                    result["practice"] = mot_split[0].strip()
+                    if len(mot_split) > 1:
+                        result["motivation"] = mot_split[1].strip()
 
-    return sections
+        # If parsing bombed, at least the study plan shows (user sees something)
+        if not result["flashcards"]:
+            print("⚠️ Flashcard parse flopped — serving raw study plan only. Blame the prompt gods.")
 
-@app.post("/api/download-anki")
-async def download_anki(flashcards: list):
-    model_id = random.randrange(1 << 30, 1 << 31)
-    deck_id = random.randrange(1 << 30, 1 << 31)
+    except Exception as parse_error:
+        print(f"Parse apocalypse: {parse_error}")
+        # Keep study_plan as raw — better than nada
 
-    anki_model = genanki.Model(
-        model_id,
-        'Exambro Model',
-        fields=[{'name': 'Question'}, {'name': 'Answer'}],
-        templates=[{
-            'name': 'Card',
-            'qfmt': '<div style="font-size:20px;text-align:center">{{Question}}</div>',
-            'afmt': '{{FrontSide}}<hr><div style="font-size:18px;color:#6366f1">{{Answer}}</div>',
-        }]
-    )
-
-    deck = genanki.Deck(deck_id, 'Exambro Study Deck')
-
-    for card in flashcards:
-        note = genanki.Note(model=anki_model, fields=[card['question'], card['answer']])
-        deck.add_note(note)
-
-    output_path = Path('exambro_deck.apkg')  # Save in current folder, not /tmp
-    genanki.Package(deck).write_to_file(str(output_path))
-
-    return FileResponse(output_path, filename='exambro_deck.apkg', media_type='application/octet-stream')
+    return result
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)  # Changed to 8001 permanently
+    print("🚀 LearnFlow server firing up on Gemini 2.0 Flash — hold my energy drink.")
+    uvicorn.run(app, host="0.0.0.0", port=8001)
