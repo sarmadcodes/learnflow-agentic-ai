@@ -252,41 +252,33 @@ function App() {
             </motion.section>
 
             {/* Flashcards */}
-            {result.flashcards?.length > 0 && (
-              <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-14">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-                  <div className="flex items-center gap-4">
-                    <Brain className="w-10 h-10 md:w-12 md:h-12 text-blue-600" />
-                    <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                      Flashcards ({result.flashcards.length})
-                    </h2>
-                  </div>
-                  <button
-                    onClick={downloadAnki}
-                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-base md:text-lg rounded-2xl shadow-xl transition-all flex items-center gap-3"
-                  >
-                    <Download className="w-5 h-5 md:w-6 md:h-6" /> Download Anki Deck
-                  </button>
-                </div>
+{result.flashcards?.length > 0 && (
+  <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-14">
+    <div className="flex items-center gap-4 mb-10">
+      <Brain className="w-10 h-10 md:w-12 md:h-12 text-blue-600" />
+      <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        Flashcards ({result.flashcards.length})
+      </h2>
+    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {result.flashcards.map((card: any, i: number) => (
-                    <motion.div
-                      key={i}
-                      layoutId={`card-${i}`}
-                      onClick={() => { setSelectedCard({ ...card, index: i }); setIsFlipped(false); }}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl transition-all duration-300"
-                    >
-                      <p className="font-bold text-blue-900 text-base md:text-lg mb-2">Question</p>
-                      <p className="text-gray-800 text-sm line-clamp-4">{card.question}</p>
-                      <p className="text-xs text-indigo-600 mt-3 opacity-70">Tap to view answer</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {result.flashcards.map((card: any, i: number) => (
+        <motion.div
+          key={i}
+          layoutId={`card-${i}`}
+          onClick={() => { setSelectedCard({ ...card, index: i }); setIsFlipped(false); }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.98 }}
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl transition-all duration-300"
+        >
+          <p className="font-bold text-blue-900 text-base md:text-lg mb-2">Question</p>
+          <p className="text-gray-800 text-sm line-clamp-4">{card.question}</p>
+          <p className="text-xs text-indigo-600 mt-3 opacity-70">Tap to flip</p>
+        </motion.div>
+      ))}
+    </div>
+  </motion.section>
+)}
 
             {/* Flashcard Modal */}
             {selectedCard && (
